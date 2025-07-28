@@ -888,7 +888,7 @@ body {
   
 }
 
-#share {
+.share {
   position: fixed;
   bottom: 80px;
   right: 20px;

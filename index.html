@@ -345,22 +345,16 @@ document.getElementById("backtotop").addEventListener("click", function (e) {
   });
 });
 
-  // function shareWebsite() {
-  //   if (navigator.share) {
-  //     navigator.share({
-  //       title: document.title,
-  //       url: window.location.href,
-  //     }).then(() => {
-  //       console.log('Successfully shared');
-  //     }).catch((error) => {
-  //       console.error('Error sharing', error);
-  //     });
-  //   } else {
-  //     // Fallback for browsers that don't support the Web Share API
-  //     alert('Web Share API is not supported in your browser. You can manually copy and share the link.');
-  //     // You could also implement a custom share dialog here if needed
-  //   }
-  // }
+const backToTopBtn = document.getElementById("backtotop");
+
+window.addEventListener("scroll", () => {
+  if (window.scrollY > 100) {
+    backToTopBtn.style.display = "block";
+  } else {
+    backToTopBtn.style.display = "none";
+  }
+});
+
 
 document.getElementById("nativeShare").addEventListener("click", async () => {
   if (navigator.share) {

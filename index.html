@@ -18,7 +18,9 @@
         <source src="assets/backgroundclip2.mp4" type="video/mp4">
         Your browser does not support the video tag.
     </video>
-    <div class="heading">
+    <button id="share" onclick="shareWebsite(); return false;"><i class="bi bi-share-fill"></i></button>
+    <a href="#" class="backtotop" id="backtotop" ><i class="bi bi-arrow-up"></i></a>
+    <div class="heading" id="heading">
         <h3 style="text-align: center; color: rgb(202, 202 , 228);" >FREE WEBINAR TRAINING REVEALS...</h3>
         <h1 style="text-align: center; margin-bottom: 2rem; color: rgb(202, 202, 228); font-size: clamp(2.8rem, 4vw, 4rem); padding: 4px; font-family: 'Montserrat', sans-serif;">How To Make <span style="color: rgb(254, 242, 204)">$3,493</span> Commissions <br> Without Doing Any Selling</h1>
     </div>
@@ -334,6 +336,32 @@ var swiper = new Swiper(".swiper", {
 });
 document.querySelector('.prev').addEventListener('click', () => swiper.slidePrev());
 document.querySelector('.next').addEventListener('click', () => swiper.slideNext());
+
+document.getElementById("backtotop").addEventListener("click", function (e) {
+  e.preventDefault(); // Prevent default anchor behavior
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+});
+
+  function shareWebsite() {
+    if (navigator.share) {
+      navigator.share({
+        title: document.title,
+        url: window.location.href,
+      }).then(() => {
+        console.log('Successfully shared');
+      }).catch((error) => {
+        console.error('Error sharing', error);
+      });
+    } else {
+      // Fallback for browsers that don't support the Web Share API
+      alert('Web Share API is not supported in your browser. You can manually copy and share the link.');
+      // You could also implement a custom share dialog here if needed
+    }
+  }
+
 </script>
 </body>
 </html>

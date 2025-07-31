@@ -18,8 +18,8 @@
         <source src="assets/backgroundclip2.mp4" type="video/mp4">
         Your browser does not support the video tag.
     </video>
-    <button id="nativeShare" class="share" type="button"><i class="bi bi-share-fill"></i></button>
-    <a href="#" class="backtotop" id="backtotop" ><i class="bi bi-arrow-up"></i></a>
+    <button id="nativeShare" class="share" type="button" data-track-id="share-button"><i class="bi bi-share-fill"></i></button>
+    <a href="#" class="backtotop" id="backtotop" data-track-id="back-to-top"><i class="bi bi-arrow-up"></i></a>
     <div class="heading" id="heading">
         <h3 style="text-align: center; color: rgb(202, 202 , 228);" >FREE WEBINAR TRAINING REVEALS...</h3>
         <h1 style="text-align: center; margin-bottom: 2rem; color: rgb(202, 202, 228); font-size: clamp(2.8rem, 4vw, 4rem); padding: 4px; font-family: 'Montserrat', sans-serif;">How To Make <span style="color: rgb(254, 242, 204)">$3,493</span> Commissions <br> Without Doing Any Selling</h1>
@@ -37,44 +37,44 @@
       <div class="swiper-slide swiper-slide--one">
         <div>
           <h2>Evergreen Webinar</h2>
-          <a href="https://hop.clickbank.net/?affiliate=harryovel&vendor=ambsador" target="_blank">explore</a>
+          <a href="https://hop.clickbank.net/?affiliate=harryovel&vendor=ambsador" target="_blank" data-track-id="webinar-explore">explore</a>
         </div>
       </div>
       <div class="swiper-slide swiper-slide--two">
         <div>
           <h2>Webinar Replay</h2>
-          <a href="https://hop.clickbank.net/?affiliate=harryovel&vendor=ambsador&cbpage=webinar-replay" target="_blank">explore</a>
+          <a href="https://hop.clickbank.net/?affiliate=harryovel&vendor=ambsador&cbpage=webinar-replay" target="_blank" data-track-id="replay-explore">explore</a>
         </div>
       </div>
       <div class="swiper-slide swiper-slide--three">
         <div>
           <h2>Order Now</h2>
-          <a href="https://hop.clickbank.net/?affiliate=harryovel&vendor=ambsador&cbpage=order" target="_blank">explore</a>
+          <a href="https://hop.clickbank.net/?affiliate=harryovel&vendor=ambsador&cbpage=order" target="_blank" data-track-id="order-now-explore">explore</a>
         </div>
       </div>
 
       <div class="swiper-slide swiper-slide--four">
         <div>
           <h2>7-Day Free Trial</h2>
-          <a href="https://hop.clickbank.net/?affiliate=harryovel&vendor=ambsador&cbpage=ambassador-trial" target="_blank">explore</a>
+          <a href="https://hop.clickbank.net/?affiliate=harryovel&vendor=ambsador&cbpage=ambassador-trial" target="_blank" data-track-id="trial-explore">explore</a>
         </div>
       </div>
       <div class="swiper-slide swiper-slide--five">
         <div>
           <h2>Long-Form Sales</h2>
-          <a href="https://hop.clickbank.net/?affiliate=harryovel&vendor=ambsador&cbpage=sales" target="_blank">explore</a>
+          <a href="https://hop.clickbank.net/?affiliate=harryovel&vendor=ambsador&cbpage=sales" target="_blank" data-track-id="sales-explore">explore</a>
         </div>
       </div>
       <div class="swiper-slide swiper-slide--six">
         <div>
           <h2>4-Day Workshop</h2>
-          <a href="https://hop.clickbank.net/?vendor=ambsador&affiliate=harryovel&cbpage=wpe-workshop" target="_blank">explore</a>
+          <a href="https://hop.clickbank.net/?vendor=ambsador&affiliate=harryovel&cbpage=wpe-workshop" target="_blank" data-track-id="workshop-explore">explore</a>
         </div>
       </div>
       <div class="swiper-slide swiper-slide--seven">
         <div>
           <h2>Workshop Replay</h2>
-          <a href="https://hop.clickbank.net/?vendor=ambsador&affiliate=harryovel&cbpage=webinar-profit-engines-replay" target="_blank">explore</a>
+          <a href="https://hop.clickbank.net/?vendor=ambsador&affiliate=harryovel&cbpage=webinar-profit-engines-replay" target="_blank" data-track-id="workshop-replay-explore">explore</a>
         </div>
       </div>
     </div>
@@ -154,7 +154,7 @@
       </p>
       <br><br>
       <!-- From Uiverse.io by marcelodolza --> 
-       <a href="https://hop.clickbank.net/?affiliate=harryovel&vendor=ambsador">
+       <a href="https://hop.clickbank.net/?affiliate=harryovel&vendor=ambsador" data-track-id="join-now-animated-button">
 <button class="button">
   <div class="bg"></div>
   <svg
@@ -372,7 +372,75 @@ document.getElementById("nativeShare").addEventListener("click", async () => {
     alert("Web Share API not supported on this browser.");
   }
 });
+ // Use capture phase to ensure it fires even if other scripts stop propagation
 </script>
+
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js";
+  import { getDatabase, ref, runTransaction } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBPiQ1E6iqMnxu63VyxiJgfMSo3-4vgTwo",
+    authDomain: "johnafflit-analytics.firebaseapp.com",
+    databaseURL: "https://johnafflit-analytics-default-rtdb.firebaseio.com",
+    projectId: "johnafflit-analytics",
+    storageBucket: "johnafflit-analytics.appspot.com",
+    messagingSenderId: "45892961276",
+    appId: "1:45892961276:web:5b89e92bd237e8bd822879",
+    measurementId: "G-XMH2EB4ZTG"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // One helper, used for both visits and clicks
+  function getISTDateKey() {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(new Date()); // "YYYY-MM-DD"
+  }
+
+  // Count a visit once per device
+  if (!localStorage.getItem('visit_counted')) {
+    const dateKey = getISTDateKey();
+    const visitsTodayRef = ref(db, `analytics/visits/${dateKey}`);
+    runTransaction(visitsTodayRef, current => (current || 0) + 1)
+      .then(() => console.log('Visit recorded for', dateKey))
+      .catch(err => console.error('Visit record failed:', err));
+    localStorage.setItem('visit_counted', 'true');
+  }
+
+  // Track clicks: total + per-day
+  document.addEventListener("DOMContentLoaded", () => {
+    const els = document.querySelectorAll("[data-track-id]");
+    console.log(`Tracking clicks on ${els.length} elements`);
+
+    els.forEach(el => {
+      el.addEventListener("click", () => {
+        const id = el.getAttribute("data-track-id");
+        const today = getISTDateKey();
+
+        const totalRef = ref(db, `analytics/clicks/${id}`);
+        const dailyRef = ref(db, `analytics/clicksByDay/${id}/${today}`);
+
+        // do both writes and log outcome
+        Promise.all([
+          runTransaction(totalRef, cur => (cur || 0) + 1),
+          runTransaction(dailyRef, cur => (cur || 0) + 1)
+        ])
+        .then(() => {
+          console.log(`Click recorded for '${id}' (total and ${today})`);
+        })
+        .catch(err => {
+          console.error(`Click write failed for '${id}':`, err);
+        });
+      });
+    });
+  });
+</script>
+
 </body>
 </html>
   

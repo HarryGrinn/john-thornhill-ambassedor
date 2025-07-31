@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Analytics Dashboard</title>
+   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-4">
+  <div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- Top Section: Visits and Clicks -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+      <div class="border p-4 rounded-md">
+        <div class="text-xl font-semibold">Visits</div>
+        <div class="text-2xl font-bold" id="visit-count">Loading...</div>
+      </div>
+      <div class="border p-4 rounded-md">
+        <div class="text-xl font-semibold">Clicks</div>
+        <div class="text-2xl font-bold" id="total-click-count">Loading...</div>
+      </div>
+    </div>
+
+    <!-- First Graph -->
+    <div class="bg-white p-4 rounded-md border">
+      <canvas id="visitChart"></canvas>
+    </div>
+
+    <!-- Dropdown + Link Click Graph -->
+    <div class="space-y-4">
+      <select id="linkSelect" class="border p-2 rounded-md w-full md:w-1/3">
+        <option>webinar</option>
+        <option>webinar replay</option>
+        <option>order</option>
+        <option>7 day trial</option>
+        <option>sales</option>
+        <option>workshop</option>
+        <option>workshop replay</option>
+        <option>share</option>
+        <option>join today</option>
+      </select>
+      <div class="bg-white p-4 rounded-md border">
+        <canvas id="clickChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Table Section -->
+    <table class="w-full border text-left mt-6">
+  <thead class="bg-gray-100">
+    <tr>
+      <th class="p-2 border">LINK</th>
+      <th class="p-2 border text-right">TOTAL CLICKS</th>
+    </tr>
+  </thead>
+  <tbody id="clicks-tbody"></tbody>
+</table>
+
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js";
+  import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBPiQ1E6iqMnxu63VyxiJgfMSo3-4vgTwo",
+    authDomain: "johnafflit-analytics.firebaseapp.com",
+    databaseURL: "https://johnafflit-analytics-default-rtdb.firebaseio.com",
+    projectId: "johnafflit-analytics",
+    storageBucket: "johnafflit-analytics.appspot.com",
+    messagingSenderId: "45892961276",
+    appId: "1:45892961276:web:5b89e92bd237e8bd822879",
+    measurementId: "G-XMH2EB4ZTG"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // ---- helpers (one version only) ----
+  function toShortLabel(yyyyMmDd) {
+    const [y, m, d] = (yyyyMmDd || '').split('-').map(Number);
+    if (!y || !m || !d) return yyyyMmDd || '';
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  // ---- Visits total + chart ----
+  const visitCountEl = document.getElementById('visit-count');
+  const visitChartCtx = document.getElementById('visitChart').getContext('2d');
+  let visitChart = null;
+
+  onValue(ref(db, 'analytics/visits'), (snap) => {
+    const val = snap.val();
+
+    let totalVisits = 0;
+    let labels = [];
+    let data = [];
+
+    if (typeof val === 'number') {
+      // legacy single total
+      totalVisits = val;
+      const todayIST = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(new Date());
+      labels = [toShortLabel(todayIST)];
+      data = [val];
+    } else if (val && typeof val === 'object') {
+      const entries = Object.entries(val).sort(([a],[b]) => a.localeCompare(b));
+      labels = entries.map(([k]) => toShortLabel(k));
+      data = entries.map(([,v]) => v || 0);
+      totalVisits = data.reduce((s,n)=>s+n,0);
+    } else {
+      totalVisits = 0;
+      labels = [];
+      data = [];
+    }
+
+    visitCountEl.textContent = totalVisits;
+
+    if (!visitChart) {
+      visitChart = new Chart(visitChartCtx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Visits',
+            data,
+            borderColor: '#1D4ED8',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 20 } },
+            x: { ticks: { autoSkip: true, maxRotation: 0 } }
+          }
+        }
+      });
+    } else {
+      visitChart.data.labels = labels;
+      visitChart.data.datasets[0].data = data;
+      visitChart.update();
+    }
+  });
+
+  // ---- Top total clicks ----
+  const totalClickEl = document.getElementById('total-click-count');
+  onValue(ref(db, 'analytics/clicks'), (snap) => {
+    const data = snap.val() || {};
+    const total = Object.values(data).reduce((s,n)=> s + (Number(n)||0), 0);
+    totalClickEl.textContent = total;
+  });
+
+  // ---- Dropdown and "clicks by selected button" chart ----
+  const selectEl = document.getElementById('linkSelect');
+  const clickCtx = document.getElementById('clickChart').getContext('2d');
+  let clickChart;
+
+  function populateDropdown(buttonMap) {
+    const ids = Object.keys(buttonMap).sort();
+    // If you prefer your fixed list, comment the next line:
+    selectEl.innerHTML = ids.map(id => `<option value="${id}">${id}</option>`).join('');
+    if (!selectEl.value && ids.length) selectEl.value = ids[0];
+  }
+
+  async function drawClickSeriesFor(buttonId) {
+    const seriesSnap = await get(ref(db, `analytics/clicksByDay/${buttonId}`));
+    let labels = [];
+    let data = [];
+
+    if (seriesSnap.exists()) {
+      const obj = seriesSnap.val();
+      const entries = Object.entries(obj).sort(([a],[b]) => a.localeCompare(b));
+      labels = entries.map(([k]) => toShortLabel(k));
+      data = entries.map(([,v]) => Number(v)||0);
+    } else {
+      // fallback: single point from total
+      const totalSnap = await get(ref(db, `analytics/clicks/${buttonId}`));
+      const total = totalSnap.exists() ? Number(totalSnap.val())||0 : 0;
+      const todayKey = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(new Date());
+      labels = [toShortLabel(todayKey)];
+      data = [total];
+    }
+
+    if (!clickChart) {
+      clickChart = new Chart(clickCtx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: buttonId,
+            data,
+            borderColor: '#059669',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 20 } },
+            x: { ticks: { autoSkip: true, maxRotation: 0 } }
+          }
+        }
+      });
+    } else {
+      clickChart.data.labels = labels;
+      clickChart.data.datasets[0].label = buttonId;
+      clickChart.data.datasets[0].data = data;
+      clickChart.update();
+    }
+  }
+
+  // refetch button list and draw chart on load + when data changes
+  onValue(ref(db, 'analytics/clicks'), (snap) => {
+    const totals = snap.val() || {};
+    populateDropdown(totals);
+    const ids = Object.keys(totals).sort();
+    if (ids.length) {
+      const chosen = ids.includes(selectEl.value) ? selectEl.value : ids[0];
+      selectEl.value = chosen;
+      drawClickSeriesFor(chosen);
+    } else if (clickChart) {
+      clickChart.data.labels = [];
+      clickChart.data.datasets[0].data = [];
+      clickChart.update();
+    }
+  });
+
+  selectEl.addEventListener('change', () => drawClickSeriesFor(selectEl.value));
+
+  // ---- Dynamic table: totals per button ----
+const tbody = document.getElementById('clicks-tbody');
+
+// Optional: map your data-track-id => friendly label
+const idToLabel = {
+  'webinar-explore': 'webinar',
+  'replay-explore': 'webinar replay',
+  'order-now-explore': 'order',
+  'trial-explore': '7 day trial',
+  'sales-explore': 'sales',
+  'workshop-explore': 'workshop',
+  'workshop-replay-explore': 'workshop replay',
+  'share-button': 'share',
+  'join-now-animated-button': 'join today'
+};
+
+// Optional: keep a preferred order (otherwise we’ll sort by clicks desc)
+const preferredOrder = [
+  'webinar-explore',
+  'replay-explore',
+  'order-now-explore',
+  'trial-explore',
+  'sales-explore',
+  'workshop-explore',
+  'workshop-replay-explore',
+  'share-button',
+  'join-now-animated-button'
+];
+
+// Fallback label if an id isn't in the map
+function pretty(id) {
+  if (idToLabel[id]) return idToLabel[id];
+  return id.replace(/[-_]+/g, ' '); // "some-id" => "some id"
+}
+
+onValue(ref(db, 'analytics/clicks'), (snap) => {
+  const totals = snap.val() || {};
+  tbody.innerHTML = '';
+
+  // Build an array of [id, count]
+  let rows = Object.entries(totals).map(([id, count]) => [id, Number(count) || 0]);
+
+  // If you want the fixed order above, use it and then append any others:
+  if (preferredOrder.length) {
+    const inOrder = preferredOrder
+      .filter(id => id in totals)
+      .map(id => [id, Number(totals[id]) || 0]);
+
+    const remaining = rows
+      .filter(([id]) => !preferredOrder.includes(id))
+      .sort((a, b) => b[1] - a[1]); // extras by highest clicks
+
+    rows = [...inOrder, ...remaining];
+  } else {
+    // otherwise just sort by highest clicks
+    rows.sort((a, b) => b[1] - a[1]);
+  }
+
+  if (!rows.length) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="p-2 border text-gray-500" colspan="2">No clicks yet</td>
+    `;
+    tbody.appendChild(tr);
+    return;
+  }
+
+  for (const [id, count] of rows) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="p-2 border">${pretty(id)}</td>
+      <td class="p-2 border text-right">${count}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+});
+</script>
+
+</body>
+</html>
